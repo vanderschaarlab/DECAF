@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import networkx as nx
 import numpy as np
@@ -9,7 +9,6 @@ import torch
 import torch.nn as nn
 
 import decaf.logger as log
-from decaf.data import DataModule
 
 
 class TraceExpm(torch.autograd.Function):
@@ -143,7 +142,7 @@ class Discriminator(nn.Module):
 class DECAF(pl.LightningModule):
     def __init__(
         self,
-        dm: DataModule,  # datamodule
+        input_dim: int,
         dag_seed: list = [],
         h_dim: int = 200,
         lr: float = 1e-3,
@@ -171,7 +170,7 @@ class DECAF(pl.LightningModule):
 
         log.info(f"dag_seed {dag_seed}")
 
-        self.x_dim = dm.dims[0]
+        self.x_dim = input_dim
         self.z_dim = self.x_dim
 
         log.info(
@@ -298,16 +297,14 @@ class DECAF(pl.LightningModule):
         return l1
 
     def gen_synthetic(
-        self, x: torch.Tensor, gen_order: list = [], biased_edges: dict = {}
+        self, x: torch.Tensor, gen_order: Optional[list] = None, biased_edges: dict = {}
     ) -> torch.Tensor:
-        if len(gen_order) != 0:
-            return self.generator.sequential(
-                x, self.sample_z(x.shape[0]).type_as(x), gen_order, biased_edges
-            )
-        else:
-            return self.generator.sequential(
-                x, self.sample_z(x.shape[0]).type_as(x), biased_edges
-            )
+        return self.generator.sequential(
+            x,
+            self.sample_z(x.shape[0]).type_as(x),
+            gen_order=gen_order,
+            biased_edges=biased_edges,
+        )
 
     def get_dag(self) -> np.ndarray:
         return np.round(self.get_W().detach().numpy(), 3)
@@ -381,11 +378,8 @@ class DECAF(pl.LightningModule):
             g_loss += self.hparams.l1_g * self.l1_reg(self.generator)
 
             if len(self.dag_seed) == 0:
-                if self.hparams.causal:
-                    if self.hparams.grad_dag_loss:
-                        g_loss += self.gradient_dag_loss(batch, z)
-                    else:
-                        g_loss += self.dag_loss()
+                if self.hparams.grad_dag_loss:
+                    g_loss += self.gradient_dag_loss(batch, z)
 
             tqdm_dict = {"g_loss": g_loss.detach()}
 

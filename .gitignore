@@ -25,3 +25,4 @@ _build
 checkpoint*
 tmp*
 lightning_logs
+adult.data

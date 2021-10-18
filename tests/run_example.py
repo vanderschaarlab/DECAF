@@ -43,7 +43,7 @@ if __name__ == "__main__":
     G = nx.DiGraph(dag_seed)
     data = gen_data_nonlinear(G, SIZE=2000)
     dm = DataModule(data.values)
-    data_tensor = dm.prepare()
+    data_tensor = dm.dataset.x
 
     # sample default hyperparameters
     x_dim = dm.dims[0]
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     # model initialisation and train
     model = DECAF(
-        dm,
+        dm.dims[0],
         dag_seed=dag_seed,
         h_dim=args.h_dim,
         lr=args.lr,
