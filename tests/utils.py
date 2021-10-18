@@ -49,8 +49,7 @@ def gen_data_nonlinear(
 
 
 def load_adult() -> Tuple[pd.DataFrame, pd.DataFrame]:
-    # path = "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data"
-    path = "adult.data"
+    path = "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data"
     names = [
         "age",
         "workclass",
