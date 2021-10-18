@@ -1,0 +1,5 @@
+networkx
+numpy
+pytorch-lightning
+scipy
+torch
