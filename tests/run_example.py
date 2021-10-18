@@ -4,14 +4,15 @@ import networkx as nx
 import pytorch_lightning as pl
 from utils import gen_data_nonlinear
 
-from DECAF import DECAF, DataModule
+from decaf import DECAF
+from decaf.data import DataModule
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--h_dim", type=int, default=200)
     parser.add_argument("--lr", type=float, default=0.5e-3)
     parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--epochs", type=int, default=500)
+    parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--d_updates", type=int, default=10)
     parser.add_argument("--threshold", type=float, default=0.1)
     parser.add_argument("--alpha", type=float, default=2)
@@ -42,7 +43,7 @@ if __name__ == "__main__":
     G = nx.DiGraph(dag_seed)
     data = gen_data_nonlinear(G, SIZE=2000)
     dm = DataModule(data.values)
-    data_tensor = dm.setup()
+    data_tensor = dm.prepare()
 
     # sample default hyperparameters
     x_dim = dm.dims[0]
@@ -82,7 +83,6 @@ if __name__ == "__main__":
         p_gen=p_gen,
         use_mask=use_mask,
     )
-    print(model.hparams)
     trainer = pl.Trainer(
         gpus=number_of_gpus,
         max_epochs=args.epochs,

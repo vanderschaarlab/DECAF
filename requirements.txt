@@ -1,5 +1,7 @@
-networkx
-numpy
-pytorch-lightning
-scipy
-torch
+loguru
+networkx == 2.*
+numpy == 1.19.*
+pytorch-lightning == 1.4.*
+scipy == 1.6.*
+torch == 1.9.*
+torchtext == 0.10.*
