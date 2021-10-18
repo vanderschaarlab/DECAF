@@ -1,32 +1,49 @@
 # DECAF (DEbiasing CAusal Fairness)
+[![Tests](https://github.com/vanderschaarlab/DECAF/actions/workflows/test_decaf.yml/badge.svg)](https://github.com/vanderschaarlab/DECAF/actions/workflows/test_decaf.yml)
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://github.com/vanderschaarlab/DECAF/blob/main/LICENSE)
 
-This is example code for running DECAF for synthesizing fair data.  
+Code Author: Trent Kyono
 
-## Requirements 
+This repository contains the code used for the "DECAF: Generating Fair Synthetic Data Using Causally-Aware Generative Networks" paper(2021).
 
-- Python 3.6+
-- `PyTorch`
-- `PyTorch Lightning`
-- `numpy`
-- `networkx`
-- `scikit-learn`
-- `pandas`
+## Installation
+
+```bash
+pip install -r requirements.txt
+pip install .
+```
+
+## Tests
+You can run the tests using
+```bash
+pip install -r requirements_dev.txt
+pip install .
+pytest -vsx
+```
 
 ## Contents
 
-- `DECAF.py` - Synthetic data generator class - DECAF.
-- `main.py` - Runs a nonlinear toy DAG example.  The dag structure is stored in the `dag_seed` variable.  The edge removal is stored in the `bias_dict` variable.  See example usage in this file.
-- `utils.py` 
+- `decaf/DECAF.py` - Synthetic data generator class - DECAF.
+- `tests/run_example.py` - Runs a nonlinear toy DAG example.  The dag structure is stored in the `dag_seed` variable.  The edge removal is stored in the `bias_dict` variable.  See example usage in this file.
 
 ## Examples
 
 Base example on toy dag:
 ```bash
-$ python main.py
+$ cd tests
+$ python run_example.py
 ```
 
 An example to run with a dataset size of 2000 for 300 epochs:
 ```bash
-$ python main.py --datasize 2000 --epochs 300
+$ python run_example.py --datasize 2000 --epochs 300
 ```
 
+## Citing
+```
+@inproceedings{kyono2021decaf,
+	title        = {DECAF: Generating Fair Synthetic Data Using Causally-Aware Generative Networks},
+	author       = {Kyono, Trent and van Breugel, Boris and Berrevoets, Jeroen and van der Schaar, Mihaela},
+	year         = 2021,
+	booktitle    = {Conference on Neural Information Processing Systems(NeurIPS) 2021}
+}
