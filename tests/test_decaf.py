@@ -99,8 +99,7 @@ def test_run_experiments(X: pd.DataFrame, y: pd.DataFrame) -> None:
         roc_auc_score(y, y_pred),
     )
 
-    df = np.append(X, y.reshape(-1, 1), axis=1)
-    dm = DataModule(df)
+    dm = DataModule(X)
 
     model = DECAF(
         dm.dims[0],
@@ -113,10 +112,10 @@ def test_run_experiments(X: pd.DataFrame, y: pd.DataFrame) -> None:
         p_gen=-1,
         batch_size=100,
     )
-    trainer = pl.Trainer(max_epochs=100, logger=False)
+    trainer = pl.Trainer(max_epochs=10, logger=False)
     trainer.fit(model, dm)
 
-    synth_data = (
+    X_synth = (
         model.gen_synthetic(
             dm.dataset.x,
             gen_order=model.get_gen_order(),
@@ -124,12 +123,7 @@ def test_run_experiments(X: pd.DataFrame, y: pd.DataFrame) -> None:
         .detach()
         .numpy()
     )
-    X_synth = synth_data[:, : X.shape[1]]
-    y_synth = synth_data[:, X.shape[1] :]
-    print(np.unique(y_synth))
-
-    y_synth[y_synth > 0.5] = 1
-    y_synth[y_synth <= 0.5] = 0
+    y_synth = baseline_clf.predict(X_synth)
 
     synth_clf = XGBClassifier().fit(X_synth, y_synth)
     y_pred = synth_clf.predict(X_synth)
