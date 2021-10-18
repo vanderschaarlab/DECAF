@@ -34,36 +34,6 @@ trace_expm = TraceExpm.apply
 activation_layer = nn.ReLU(inplace=True)
 
 
-class Generator(nn.Module):
-    def __init__(
-        self, z_dim: int, x_dim: int, h_dim: int, f_scale: float = 0.1
-    ) -> None:
-        super().__init__()
-
-        def block(in_feat: int, out_feat: int, normalize: bool = False) -> list:
-            layers = [nn.Linear(in_feat, out_feat)]
-            if normalize:
-                layers.append(nn.BatchNorm1d(out_feat, 0.8))
-            layers.append(activation_layer)
-            return layers
-
-        self.model = nn.Sequential(
-            *block(z_dim + x_dim, h_dim, normalize=False),
-            *block(h_dim, h_dim),
-            *block(h_dim, h_dim),
-            nn.Linear(h_dim, x_dim),
-            nn.Sigmoid(),
-        )
-
-        for layer in self.model.parameters():
-            if type(layer) == nn.Linear:
-                torch.nn.init.xavier_normal_(layer)
-                layer.weight.data *= f_scale
-
-    def forward(self, x: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
-        return self.model(torch.cat([x, z], axis=1))
-
-
 class Generator_causal(nn.Module):
     def __init__(
         self,
@@ -184,7 +154,6 @@ class DECAF(pl.LightningModule):
         lambda_privacy: float = 1,
         d_updates: int = 5,
         eps: float = 1e-8,
-        causal: bool = False,
         alpha: float = 1,
         rho: float = 1,
         weight_decay: float = 1e-2,
@@ -197,7 +166,6 @@ class DECAF(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        self.epoch_no = 0
         self.iterations_d = 0
         self.iterations_g = 0
 
@@ -205,22 +173,18 @@ class DECAF(pl.LightningModule):
 
         self.x_dim = dm.dims[0]
         self.z_dim = self.x_dim
-        self.orig_data: list = []
 
         log.info(
             f"Setting up network with x_dim = {self.x_dim}, z_dim = {self.z_dim}, h_dim = {h_dim}"
         )
         # networks
-        if causal:
-            self.generator = Generator_causal(
-                z_dim=self.z_dim,
-                x_dim=self.x_dim,
-                h_dim=h_dim,
-                use_mask=use_mask,
-                dag_seed=dag_seed,
-            )
-        else:
-            self.generator = Generator(z_dim=self.z_dim, x_dim=self.x_dim, h_dim=h_dim)
+        self.generator = Generator_causal(
+            z_dim=self.z_dim,
+            x_dim=self.x_dim,
+            h_dim=h_dim,
+            use_mask=use_mask,
+            dag_seed=dag_seed,
+        )
         self.discriminator = Discriminator(x_dim=self.x_dim, h_dim=h_dim)
 
         self.dag_seed = dag_seed
@@ -394,13 +358,12 @@ class DECAF(pl.LightningModule):
                 batch, generated_batch
             )
 
-            tqdm_dict = {"d_loss": d_loss}
+            tqdm_dict = {"d_loss": d_loss.detach()}
             output = OrderedDict(
                 {"loss": d_loss, "progress_bar": tqdm_dict, "log": tqdm_dict}
             )
             return output
-
-        if optimizer_idx == 1:
+        elif optimizer_idx == 1:
             # sanity check: keep track of G updates
             self.iterations_g += 1
 
@@ -424,15 +387,15 @@ class DECAF(pl.LightningModule):
                     else:
                         g_loss += self.dag_loss()
 
-            tqdm_dict = {"g_loss": g_loss}
+            tqdm_dict = {"g_loss": g_loss.detach()}
 
             output = OrderedDict(
                 {"loss": g_loss, "progress_bar": tqdm_dict, "log": tqdm_dict}
             )
 
             return output
-
-        raise ValueError("should not get here")
+        else:
+            raise ValueError("should not get here")
 
     def configure_optimizers(self) -> tuple:
         lr = self.hparams.lr
@@ -456,9 +419,3 @@ class DECAF(pl.LightningModule):
             {"optimizer": opt_d, "frequency": self.hparams.d_updates},
             {"optimizer": opt_g, "frequency": 1},
         )
-
-    def set_val_data(self, orig_data: list) -> None:
-        self.orig_data = orig_data
-
-    def on_epoch_end(self, log: bool = True) -> None:
-        self.epoch_no += 1

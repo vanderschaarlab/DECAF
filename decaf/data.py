@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import pytorch_lightning as pl
@@ -37,10 +37,7 @@ class DataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.dataset = Dataset(data)
-
-    def prepare(self, stage: Optional[str] = None) -> torch.Tensor:
         self.dims = self.dataset.x.shape[1:]
-        return self.dataset.x
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(

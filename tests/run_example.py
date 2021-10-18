@@ -58,7 +58,6 @@ if __name__ == "__main__":
     use_mask = True
 
     # causality settings
-    causal = True
     grad_dag_loss = False
 
     number_of_gpus = 0
@@ -73,7 +72,6 @@ if __name__ == "__main__":
         lambda_privacy=lambda_privacy,
         lambda_gp=lambda_gp,
         d_updates=args.d_updates,
-        causal=causal,
         alpha=args.alpha,
         rho=args.rho,
         weight_decay=weight_decay,
@@ -90,7 +88,6 @@ if __name__ == "__main__":
         profiler=False,
         callbacks=[],
     )
-    model.set_val_data(data_tensor)  # NOTE This is USED only for DEBUGGING PURPOSES
     trainer.fit(model, dm)
     synth_data = (
         model.gen_synthetic(
