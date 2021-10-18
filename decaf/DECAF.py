@@ -336,7 +336,6 @@ class DECAF(pl.LightningModule):
     def gen_synthetic(
         self, x: torch.Tensor, gen_order: list = [], biased_edges: dict = {}
     ) -> torch.Tensor:
-        print("debug ", x)
         if len(gen_order) != 0:
             return self.generator.sequential(
                 x, self.sample_z(x.shape[0]).type_as(x), gen_order, biased_edges
