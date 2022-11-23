@@ -311,9 +311,7 @@ class DECAF(pl.LightningModule):
         )
 
     def sample_z(self, n: int) -> torch.Tensor:
-        z = torch.rand(n, self.z_dim, device=DEVICE) * 2 - 1
-
-        return z.to(DEVICE)
+        return torch.randn(n, self.z_dim, device=DEVICE)
 
     @staticmethod
     def l1_reg(model: nn.Module) -> float:
@@ -339,11 +337,9 @@ class DECAF(pl.LightningModule):
 
     def get_gen_order(self) -> list:
         dense_dag = np.array(self.get_dag())
-        print(dense_dag)
         dense_dag[dense_dag > 0.5] = 1
         dense_dag[dense_dag <= 0.5] = 0
         G = nx.from_numpy_matrix(dense_dag, create_using=nx.DiGraph)
-        print(G.edges())
         gen_order = list(nx.algorithms.dag.topological_sort(G))
         return gen_order
 
