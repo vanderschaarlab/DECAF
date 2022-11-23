@@ -138,7 +138,7 @@ class Generator_causal(nn.Module):
             if i in biased_edges:
                 for j in biased_edges[i]:
                     x_j = x_masked[:, j]
-                    perm = torch.randperm(x_j.shape)
+                    perm = torch.randperm(len(x_j))
                     x_masked[:, j] = x_j[perm]
             out_i = self.fc_i[i](torch.cat([x_masked, z[:, i].unsqueeze(1)], axis=1))
             out_i = nn.ReLU()(out_i)

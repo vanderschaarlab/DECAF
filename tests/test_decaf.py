@@ -72,5 +72,5 @@ def test_sanity_generate() -> None:
 
     trainer.fit(model, dummy_dm)
 
-    synth_data = model.gen_synthetic(raw_data, biased_edges=bias_dict).detach().numpy()
+    synth_data = model.gen_synthetic(raw_data, biased_edges=bias_dict)
     assert synth_data.shape[0] == 10
