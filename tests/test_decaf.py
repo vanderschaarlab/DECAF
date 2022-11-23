@@ -71,6 +71,7 @@ def test_sanity_generate() -> None:
     trainer = pl.Trainer(max_epochs=100, logger=True)
 
     trainer.fit(model, dummy_dm)
+    print("raw data", raw_data.shape, dummy_dm.dataset.x.shape)
 
     synth_data = (
         model.gen_synthetic(

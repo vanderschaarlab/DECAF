@@ -8,7 +8,6 @@ from loguru import logger
 
 LOG_FORMAT = "[{time}][{process.id}][{level}] {message}"
 
-logger.remove()
 DEFAULT_SINK = "decaf_{time}.log"
 
 

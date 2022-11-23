@@ -8,11 +8,13 @@ from torch.utils.data import DataLoader
 
 import decaf.logger as log
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, data: list) -> None:
         data = np.array(data, dtype="float32")
-        self.x = torch.from_numpy(data)
+        self.x = torch.from_numpy(data).to(DEVICE)
         self.n_samples = self.x.shape[0]
         log.info("***** DATA ****")
         log.info(f"n_samples = {self.n_samples}")
@@ -49,10 +51,14 @@ class DataModule(pl.LightningDataModule):
 
     def val_dataloader(self) -> DataLoader:
         return DataLoader(
-            self.data_val, batch_size=self.batch_size, num_workers=self.num_workers
+            self.data_val,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
         )
 
     def test_dataloader(self) -> DataLoader:
         return DataLoader(
-            self.data_test, batch_size=self.batch_size, num_workers=self.num_workers
+            self.data_test,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
         )
