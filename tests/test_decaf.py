@@ -72,7 +72,7 @@ def test_sanity_generate() -> None:
         dummy_dm.dims[0],
         dag_seed=seed,
     )
-    trainer = pl.Trainer(max_epochs=2, logger=False)
+    trainer = pl.Trainer(max_epochs=100, logger=True)
 
     trainer.fit(model, dummy_dm)
 
@@ -84,53 +84,3 @@ def test_sanity_generate() -> None:
         .numpy()
     )
     assert synth_data.shape[0] == 10
-
-
-@pytest.mark.parametrize("X,y", [load_adult()])
-@pytest.mark.slow
-def test_run_experiments(X: pd.DataFrame, y: pd.DataFrame) -> None:
-    baseline_clf = XGBClassifier().fit(X, y)
-    y_pred = baseline_clf.predict(X)
-
-    print(
-        "baseline scores",
-        precision_score(y, y_pred),
-        recall_score(y, y_pred),
-        roc_auc_score(y, y_pred),
-    )
-
-    dm = DataModule(X)
-
-    model = DECAF(
-        dm.dims[0],
-        use_mask=True,
-        grad_dag_loss=False,
-        lambda_privacy=0,
-        lambda_gp=10,
-        weight_decay=1e-2,
-        l1_g=0,
-        p_gen=-1,
-        batch_size=100,
-    )
-    trainer = pl.Trainer(max_epochs=10, logger=False)
-    trainer.fit(model, dm)
-
-    X_synth = (
-        model.gen_synthetic(
-            dm.dataset.x,
-            gen_order=model.get_gen_order(),
-        )
-        .detach()
-        .numpy()
-    )
-    y_synth = baseline_clf.predict(X_synth)
-
-    synth_clf = XGBClassifier().fit(X_synth, y_synth)
-    y_pred = synth_clf.predict(X_synth)
-
-    print(
-        "synth scores",
-        precision_score(y_synth, y_pred),
-        recall_score(y_synth, y_pred),
-        roc_auc_score(y_synth, y_pred),
-    )

@@ -10,6 +10,7 @@ import torch.nn as nn
 
 import decaf.logger as log
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class TraceExpm(torch.autograd.Function):
     @staticmethod
@@ -17,7 +18,7 @@ class TraceExpm(torch.autograd.Function):
         # detach so we can cast to NumPy
         E = slin.expm(input.detach().numpy())
         f = np.trace(E)
-        E = torch.from_numpy(E)
+        E = torch.from_numpy(E).to(DEVICE)
         ctx.save_for_backward(E)
         return torch.as_tensor(f, dtype=input.dtype)
 
@@ -183,8 +184,8 @@ class DECAF(pl.LightningModule):
             h_dim=h_dim,
             use_mask=use_mask,
             dag_seed=dag_seed,
-        )
-        self.discriminator = Discriminator(x_dim=self.x_dim, h_dim=h_dim)
+        ).to(DEVICE)
+        self.discriminator = Discriminator(x_dim=self.x_dim, h_dim=h_dim).to(DEVICE)
 
         self.dag_seed = dag_seed
 
