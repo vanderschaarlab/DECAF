@@ -2,13 +2,9 @@ from typing import Tuple
 
 import networkx as nx
 import numpy as np
-import pandas as pd
-import pytest
 import pytorch_lightning as pl
 import torch
-from sklearn.metrics import precision_score, recall_score, roc_auc_score
-from utils import gen_data_nonlinear, load_adult
-from xgboost import XGBClassifier
+from utils import gen_data_nonlinear
 
 from decaf import DECAF, DataModule
 
