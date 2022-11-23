@@ -67,7 +67,8 @@ class Generator_causal(nn.Module):
             out_dim = 0
             for act, length in nonlin_out:
                 out_dim += length
-            assert out_dim == x_dim
+            if out_dim != x_dim:
+                raise RuntimeError("Invalid nonlin_out")
 
         self.x_dim = x_dim
         self.nonlin_out = nonlin_out
@@ -155,7 +156,8 @@ class Generator_causal(nn.Module):
 
                 split += step
 
-            assert split == out.shape[-1]
+            if split != out.shape[-1]:
+                raise ValueError("Invalid activations")
 
         return out
 
@@ -367,7 +369,8 @@ class DECAF(pl.LightningModule):
             d_loss += self.hparams.lambda_gp * self.compute_gradient_penalty(
                 batch, generated_batch
             )
-            assert not torch.isnan(d_loss).sum()
+            if torch.isnan(d_loss).sum() != 0:
+                raise ValueError("NaN in the discr loss")
 
             return d_loss
         elif optimizer_idx == 1:
@@ -390,7 +393,8 @@ class DECAF(pl.LightningModule):
             if len(self.dag_seed) == 0:
                 if self.hparams.grad_dag_loss:
                     g_loss += self.gradient_dag_loss(batch, z)
-            assert not torch.isnan(g_loss).sum()
+            if torch.isnan(g_loss).sum() != 0:
+                raise ValueError("NaN in the gen loss")
 
             return g_loss
         else:
