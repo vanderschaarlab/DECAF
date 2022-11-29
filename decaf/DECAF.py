@@ -39,7 +39,7 @@ class TraceExpm(torch.autograd.Function):
         E = torch.linalg.matrix_exp(data)
         f = torch.trace(E)
         ctx.save_for_backward(E)
-        return torch.as_tensor(f, dtype=input.dtype)
+        return torch.as_tensor(f, dtype=data.dtype)
 
     @staticmethod
     def backward(ctx: Any, grad_output: torch.Tensor) -> torch.Tensor:
