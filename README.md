@@ -2,7 +2,7 @@
 [![Tests](https://github.com/vanderschaarlab/DECAF/actions/workflows/test_decaf.yml/badge.svg)](https://github.com/vanderschaarlab/DECAF/actions/workflows/test_decaf.yml)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://github.com/vanderschaarlab/DECAF/blob/main/LICENSE)
 
-Code Author: Trent Kyono
+Code Author: Trent Kyono and Boris van Breugel
 
 This repository contains the code used for the "DECAF: Generating Fair Synthetic Data Using Causally-Aware Generative Networks" paper(2021).
 
@@ -43,7 +43,7 @@ $ python run_example.py --datasize 2000 --epochs 300
 ```
 @inproceedings{kyono2021decaf,
 	title        = {DECAF: Generating Fair Synthetic Data Using Causally-Aware Generative Networks},
-	author       = {Kyono, Trent and van Breugel, Boris and Berrevoets, Jeroen and van der Schaar, Mihaela},
+	author       = {van Breugel, Boris and Kyono, Trent and Berrevoets, Jeroen and van der Schaar, Mihaela},
 	year         = 2021,
 	booktitle    = {Conference on Neural Information Processing Systems(NeurIPS) 2021}
 }
