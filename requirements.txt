@@ -1,5 +1,5 @@
 loguru
-networkx>=2.0
+networkx>=2.0,<3.0
 numpy>=1.19
 pandas
 pytorch-lightning>=1.4
