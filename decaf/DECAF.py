@@ -204,6 +204,9 @@ class DECAF(pl.LightningModule):
         nonlin_out: Optional[List] = None,
     ):
         super().__init__()
+        # Lightning ≥ 2.0 needs manual optimisation for multi-optimiser GANs
+        self.automatic_optimization = False
+
         self.save_hyperparameters()
 
         self.iterations_d = 0
@@ -252,7 +255,6 @@ class DECAF(pl.LightningModule):
                 inputs=x,
                 grad_outputs=dummy,
                 create_graph=True,
-                retain_graph=True,
                 only_inputs=True,
             )[0]
             W[i] = torch.sum(torch.abs(gradients), axis=0)
@@ -282,7 +284,6 @@ class DECAF(pl.LightningModule):
             inputs=interpolates,
             grad_outputs=fake,
             create_graph=True,
-            retain_graph=True,
             only_inputs=True,
         )[0]
         gradients = gradients.view(gradients.size(0), -1)
@@ -341,64 +342,74 @@ class DECAF(pl.LightningModule):
         dense_dag = np.array(self.get_dag())
         dense_dag[dense_dag > 0.5] = 1
         dense_dag[dense_dag <= 0.5] = 0
-        G = nx.from_numpy_matrix(dense_dag, create_using=nx.DiGraph)
+        G = nx.from_numpy_array(dense_dag, create_using=nx.DiGraph)
         gen_order = list(nx.algorithms.dag.topological_sort(G))
         return gen_order
 
-    def training_step(
-        self, batch: torch.Tensor, batch_idx: int, optimizer_idx: int
-    ) -> OrderedDict:
+    # ------------------------------------------------------------
+    # Manual optimisation loop (Lightning ≥ 2.0)
+    # ------------------------------------------------------------
+    def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
+        opt_d, opt_g = self.optimizers()          # keep order [D, G]
+
+        # --------------- 1. Discriminator update ---------------
         # sample noise
         z = self.sample_z(batch.shape[0])
         z = z.type_as(batch)
-        generated_batch = self.generator.sequential(batch, z, self.get_gen_order())
+        fake = self.generator.sequential(batch, z, self.get_gen_order())
 
-        # train generator
-        if optimizer_idx == 0:
-            self.iterations_d += 1
-            # Measure discriminator's ability to classify real from generated samples
+        # Measure discriminator's ability to classify real from generated samples
+        opt_d.zero_grad()
 
-            # how well can it label as real?
-            real_loss = torch.mean(self.discriminator(batch))
-            fake_loss = torch.mean(self.discriminator(generated_batch.detach()))
+        # how well can it label as real?
+        real_loss = self.discriminator(batch).mean()
+        fake_loss = self.discriminator(fake.detach()).mean()
 
-            # discriminator loss
-            d_loss = fake_loss - real_loss
+        # discriminator loss
+        d_loss = fake_loss - real_loss
 
-            # add the gradient penalty
-            d_loss += self.hparams.lambda_gp * self.compute_gradient_penalty(
-                batch, generated_batch
-            )
-            if torch.isnan(d_loss).sum() != 0:
-                raise ValueError("NaN in the discr loss")
+        # add the gradient penalty
+        d_loss += self.hparams.lambda_gp * self.compute_gradient_penalty(
+            batch, fake.detach()      # detach -> GP does not touch G’s graph
+        )
+        self.manual_backward(d_loss)
+        opt_d.step()
 
-            return d_loss
-        elif optimizer_idx == 1:
-            # sanity check: keep track of G updates
-            self.iterations_g += 1
+        if torch.isnan(d_loss).sum() != 0:
+            raise ValueError("NaN in the discr loss")
 
-            # adversarial loss (negative D fake loss)
-            g_loss = -torch.mean(
-                self.discriminator(generated_batch)
-            )  # self.adversarial_loss(self.discriminator(self.generated_batch), valid)
+        # --------------- 2. Generator update -------------------
+        opt_g.zero_grad()
 
-            # add privacy loss of ADS-GAN
-            g_loss += self.hparams.lambda_privacy * self.privacy_loss(
-                batch, generated_batch
-            )
+        # !! recompute fake so we have a fresh graph
+        z2   = self.sample_z(batch.shape[0]).type_as(batch)
+        fake = self.generator.sequential(batch, z2, self.get_gen_order())
 
-            # add l1 regularization loss
-            g_loss += self.hparams.l1_g * self.l1_reg(self.generator)
+        # adversarial loss (negative D fake loss)
+        g_loss = -self.discriminator(fake).mean()
 
-            if len(self.dag_seed) == 0:
-                if self.hparams.grad_dag_loss:
-                    g_loss += self.gradient_dag_loss(batch, z)
-            if torch.isnan(g_loss).sum() != 0:
-                raise ValueError("NaN in the gen loss")
+        # add privacy loss of ADS-GAN
+        g_loss += self.hparams.lambda_privacy * self.privacy_loss(batch, fake)
 
-            return g_loss
-        else:
-            raise ValueError("should not get here")
+        # add l1 regularization loss
+        g_loss += self.hparams.l1_g * self.l1_reg(self.generator)
+
+        if len(self.dag_seed) == 0 and self.hparams.grad_dag_loss:
+            g_loss += self.gradient_dag_loss(batch, z)
+        self.manual_backward(g_loss)
+        opt_g.step()
+
+        if torch.isnan(g_loss).sum() != 0:
+            raise ValueError("NaN in the gen loss")
+
+        # bookkeeping & logging
+        # sanity check: keep track of G/d updates
+        self.iterations_d += 1
+        self.iterations_g += 1
+        self.log_dict({"d_loss": d_loss, "g_loss": g_loss},
+                      prog_bar=True, on_step=True, logger=True)
+        return g_loss   # Only returned for logging; manual optimization handles all stepping.
+
 
     def configure_optimizers(self) -> tuple:
         lr = self.hparams.lr
